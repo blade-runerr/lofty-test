@@ -52,7 +52,7 @@ pip install -r requirements.txt -r requirements-dev.txt
 pytest
 ```
 
-Пример вывода: все тесты проходят (`pytest` в конце показывает зелёный прогон).
+Пример вывода: все тесты проходят 
 
 ![Pytest: все тесты пройдены](static/tests.jpg)
 
