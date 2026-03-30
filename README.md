@@ -52,6 +52,10 @@ pip install -r requirements.txt -r requirements-dev.txt
 pytest
 ```
 
+Пример вывода: все тесты проходят (`pytest` в конце показывает зелёный прогон).
+
+![Pytest: все тесты пройдены](static/tests.jpg)
+
 На GitHub при пуше/PR в `main` или `master` запускается [CI](.github/workflows/ci.yml): pytest (Python 3.9 и 3.11) и сборка Docker-образа.
 
 Переменные окружения (см. `.env.example`):
