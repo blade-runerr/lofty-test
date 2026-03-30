@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     telegram_chat_id: Optional[str] = Field(
         default=None,
         validation_alias=AliasChoices("TELEGRAM_CHAT_ID", "CHAT_ID"),
-        description="Куда слать: user id, группа или @channelusername",
+        description="Куда слать- user id, группа или @channelusername",
     )
     rss_feed_url: HttpUrl = Field(
         ...,
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     database_url: Optional[str] = Field(
         default=None,
         validation_alias="DATABASE_URL",
-        description="Если задан — PostgreSQL (psycopg). Иначе SQLite по DATABASE_PATH.",
+        description="Если задан — PostgreSQL Иначе SQLite по DATABASE_PATH",
     )
     database_path: Path = Field(
         default=Path("data/seen_posts.db"),

@@ -110,5 +110,5 @@ class Storage:
             self._sqlite.commit()
 
     def filter_new_posts(self, posts: list[Post]) -> list[Post]:
-        """Удобный батч: вернуть только те, что нужно отправить."""
+        """ вернуть только те, что нужно отправить."""
         return [p for p in posts if self.is_new(p)]

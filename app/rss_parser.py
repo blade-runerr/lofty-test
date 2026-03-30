@@ -47,14 +47,14 @@ def _entry_published_at(entry: Any) -> datetime:
 
 
 class RSSParser:
-    """Загрузка и разбор RSS/Atom в список доменных Post."""
+    """Загрузка и разбор RSS в список доменных Post"""
 
     def __init__(self, feed_url: str, timeout: float = 30.0) -> None:
         self._feed_url = feed_url
         self._timeout = timeout
 
     def fetch_raw_feed(self) -> str:
-        """HTTP GET тела ленты (для тестов / кеша ответа)."""
+        """HTTP GET тела ленты"""
         headers = {
             "User-Agent": DEFAULT_USER_AGENT,
             "Accept": (
@@ -72,7 +72,7 @@ class RSSParser:
         return response.text
 
     def parse_posts(self) -> list[Post]:
-        """Вернуть элементы ленты как валидированные Pydantic-модели."""
+        """Вернуть элементы ленты как валидированные Pydantic-модели """
         try:
             raw = self.fetch_raw_feed()
         except httpx.HTTPError as exc:

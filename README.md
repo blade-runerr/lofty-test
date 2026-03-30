@@ -60,7 +60,7 @@ pytest
 |------------|------------|
 | `TELEGRAM_BOT_TOKEN` или `API_KEY` | Токен бота от @BotFather |
 | `TELEGRAM_CHAT_ID` | Куда слать . Без него сообщения не уходят и посты **не** помечаются в БД (чтобы не потерять уведомления) |
-| `RSS_FEED_URL` | URL RSS или Atom |
+| `RSS_FEED_URL` | URL RSS |
 | `DATABASE_URL` | Если задан — **PostgreSQL** (`psycopg`). В Docker Compose задаётся автоматически |
 | `DATABASE_PATH` | Путь к файлу SQLite, если `DATABASE_URL` пуст (локальная разработка без Postgres) |
 | `POLL_INTERVAL_SECONDS` | Период опроса (не меньше 30) |

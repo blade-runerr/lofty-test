@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class Notifier:
-    """Отправка уведомлений в Telegram (Bot API)."""
+    """Отправка уведомлений в телегу"""
 
     def __init__(
         self,
@@ -37,7 +37,7 @@ class Notifier:
         )
 
     def send_post_notification(self, post: Post) -> bool:
-        """Отправить одно сообщение. Возвращает True, если ушло в Telegram (можно mark_seen)."""
+        """Отправить одно сообщение. Возвращает True, если ушло в Telegram"""
         if not self._chat_id:
             logger.warning("TELEGRAM_CHAT_ID не задан — сообщение не отправлено")
             return False
@@ -63,7 +63,7 @@ class Notifier:
         return True
 
     def notify_batch(self, posts: list[Post]) -> None:
-        """Очередь/ретраи можно вынести сюда или в оркестратор."""
+        
         if not posts:
             return
         if not self._chat_id:
