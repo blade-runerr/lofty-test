@@ -39,7 +39,7 @@ docker compose --profile monitoring up --build
 
 ![Grafana: rate(rss_items_parsed_total[5m]) * 60](static/gafana.jpg)
 
-**Второй скрин:** запрос `histogram_quantile(0.9, rate(rss_poll_duration_seconds_bucket[5m]))` — оценка 90-го перцентиля длительности цикла опроса (сек).
+**Второй скрин:** запрос `histogram_quantile(0.9, rate(rss_poll_duration_seconds_bucket[5m]))` — оценка 90-го перцентиля длительности цикла опроса (сек). (такой всплеск в начале только при первом запуске когда бд пустая)
 
 ![Grafana: histogram_quantile по rss_poll_duration_seconds](static/grafana-rss-per-minutte.jpg)
 
