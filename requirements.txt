@@ -1,0 +1,8 @@
+# Дублирует pyproject.toml для установки через: pip install -r requirements.txt
+pydantic>=2.6
+pydantic-settings>=2.2
+python-dotenv>=1.0
+feedparser>=6.0
+APScheduler>=3.10
+httpx>=0.27
+psycopg[binary]>=3.1
