@@ -48,6 +48,12 @@ docker compose --profile monitoring up --build
 
 Локально без Docker: задайте **`METRICS_PORT=9091`** в `.env` и откройте `http://127.0.0.1:9091/metrics`; Prometheus можно запустить отдельно и указать target на ваш хост.
 
+#### Скриншоты Grafana
+
+![Grafana: обзор метрик](static/gafana.jpg)
+
+![Grafana: RSS items per minute](static/grafana-rss-per-minutte.jpg)
+
 Переменные окружения (см. `.env.example`):
 
 | Переменная | Назначение |
