@@ -31,7 +31,22 @@ cp .env.example .env
 docker compose up --build
 ```
 
-`docker-compose.yml` задаёт `DATABASE_URL=postgresql://rss:rss@postgres:5432/rss` и ждёт готовности Postgres по `healthcheck`. Данные БД лежат в volume `pgdata`.
+`docker-compose.yml` задаёт `DATABASE_URL=postgresql://rss:rss@postgres:5432/rss` и ждёт готовности Postgres по `healthcheck`. Данные БД лежат в volume `pgdata`. Сервис **app** публикует **`METRICS_PORT=9091`** — эндпоинт **`http://<хост>:9091/metrics`** в формате Prometheus.
+
+### Prometheus и Grafana
+
+**Prometheus** опрашивает цели по HTTP (pull) и хранит временные ряды. **Grafana** подключается к Prometheus как к datasource и строит дашборды — это стандартная связка для метрик приложений.
+
+В репозитории уже есть счётчики и гистограмма в `app/metrics.py` (например `rss_poll_runs_total`, `rss_poll_duration_seconds`, `rss_telegram_sent_total`). Чтобы поднять стек мониторинга вместе с приложением:
+
+```bash
+docker compose --profile monitoring up --build
+```
+
+- **Prometheus**: [http://localhost:9090](http://localhost:9090) — вкладка Graph, запросы вроде `rate(rss_poll_runs_total[5m])`.
+- **Grafana**: [http://localhost:3000](http://localhost:3000) (логин/пароль по умолчанию `admin` / `admin` — смените в проде). Источник **Prometheus** подхватывается из `deploy/grafana/provisioning/`.
+
+Локально без Docker: задайте **`METRICS_PORT=9091`** в `.env` и откройте `http://127.0.0.1:9091/metrics`; Prometheus можно запустить отдельно и указать target на ваш хост.
 
 Переменные окружения (см. `.env.example`):
 
@@ -43,6 +58,7 @@ docker compose up --build
 | `DATABASE_URL` | Если задан — **PostgreSQL** (`psycopg`). В Docker Compose задаётся автоматически |
 | `DATABASE_PATH` | Путь к файлу SQLite, если `DATABASE_URL` пуст (локальная разработка без Postgres) |
 | `POLL_INTERVAL_SECONDS` | Период опроса (не меньше 30) |
+| `METRICS_PORT` | Если задан — экспорт `/metrics` для Prometheus (в Compose для `app` уже **9091**) |
 
 ## 1. Схема взаимодействия компонентов
 

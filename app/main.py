@@ -8,6 +8,7 @@ from typing import Optional
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from app.config import Settings
+from app import metrics as prom_metrics
 from app.notifier import Notifier
 from app.rss_parser import RSSParser
 from app.storage import Storage
@@ -31,11 +32,25 @@ def run_poll_cycle(
     notifier: Notifier,
 ) -> None:
     """Один проход: парсинг → дедуп → по одному: отправка и сразу mark_seen."""
-    posts = parser.parse_posts()
-    new_posts = storage.filter_new_posts(posts)
-    for post in new_posts:
-        if notifier.send_post_notification(post):
-            storage.mark_seen(post)
+
+    def _run() -> None:
+        posts = parser.parse_posts()
+        prom_metrics.rss_items_parsed_total.inc(len(posts))
+        new_posts = storage.filter_new_posts(posts)
+        prom_metrics.rss_items_new_total.inc(len(new_posts))
+        for post in new_posts:
+            try:
+                ok = notifier.send_post_notification(post)
+            except Exception:
+                prom_metrics.telegram_errors_total.inc()
+                raise
+            if ok:
+                storage.mark_seen(post)
+                prom_metrics.telegram_sent_total.inc()
+            else:
+                prom_metrics.telegram_skipped_total.inc()
+
+    prom_metrics.observe_poll_cycle(_run)
 
 
 def main() -> None:
@@ -59,6 +74,9 @@ def main() -> None:
         f"{settings.poll_interval_seconds}s, RSS:",
         str(settings.rss_feed_url),
     )
+
+    if settings.metrics_port is not None:
+        prom_metrics.start_metrics_server(settings.metrics_port)
 
     run_poll_cycle(parser, storage, notifier)
 

@@ -43,6 +43,20 @@ class Settings(BaseSettings):
         ge=30,
         validation_alias="POLL_INTERVAL_SECONDS",
     )
+    metrics_port: Optional[int] = Field(
+        default=None,
+        validation_alias="METRICS_PORT",
+        ge=1,
+        le=65535,
+        description="Если задан — слушать /metrics для Prometheus на этом порту",
+    )
+
+    @field_validator("metrics_port", mode="before")
+    @classmethod
+    def metrics_port_empty_to_none(cls, v: object) -> Optional[int]:
+        if v is None or v == "":
+            return None
+        return int(v)
 
     @field_validator("database_url", mode="before")
     @classmethod

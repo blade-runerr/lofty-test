@@ -12,6 +12,7 @@ def no_local_dotenv(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Без .env в CWD тесты зависят только от monkeypatch.setenv."""
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("METRICS_PORT", raising=False)
 
 
 def test_settings_required_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -35,5 +36,6 @@ def test_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     s = Settings()
     assert s.telegram_chat_id is None
     assert s.database_url is None
+    assert s.metrics_port is None
     assert s.database_path == Path("data/seen_posts.db")
     assert s.poll_interval_seconds == 300
