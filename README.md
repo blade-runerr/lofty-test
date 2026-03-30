@@ -1,65 +1,65 @@
-# RSS → Telegram: каркас приложения
+# RSS → Telegram notifier
 
-Тестовое задание: периодический опрос RSS-ленты новостного сайта и уведомления в Telegram о новых постах. Есть рабочая реализация **RSSParser** (httpx + feedparser), **Storage** (SQLite **или** PostgreSQL по `DATABASE_URL`, дедуп по `guid`/ссылке и `content_hash`), **Notifier** (Telegram `sendMessage`), планировщик APScheduler, **Docker Compose** и юнит-тесты.
+Периодический опрос RSS-ленты и уведомления в Telegram. Реализованы **RSSParser**, **Storage** (PostgreSQL в Docker или SQLite локально), **Notifier**, APScheduler, метрики Prometheus, опционально Grafana.
 
-## Быстрый старт
+## Запуск в Docker
 
-```bash
-python -m venv .venv
-source .venv/Scripts/activate   # Windows Git Bash
-pip install -r requirements.txt
-cp .env.example .env            # при необходимости; заполните токен и URL ленты
-python -m app.main
-```
+Нужны **Docker Engine** и **Docker Compose**.
 
-### Тесты
+1. Клонируйте репозиторий и перейдите в каталог проекта.
+2. Скопируйте шаблон окружения и заполните значения:
+   ```bash
+   cp .env.example .env
+   ```
+   Обязательно укажите в `.env`: **`TELEGRAM_BOT_TOKEN`** (или **`API_KEY`**), **`TELEGRAM_CHAT_ID`**, **`RSS_FEED_URL`**. Остальное при необходимости см. таблицу ниже.
+3. Соберите образы и поднимите **PostgreSQL** и приложение:
+   ```bash
+   docker compose up --build # без метрик
+   ```
+   Compose сам задаёт **`DATABASE_URL`** на контейнер `postgres`, ждёт **`healthcheck`** БД, монтирует volume **`pgdata`** для данных. У сервиса **`app`** открыт порт **9091** — сырые метрики: `http://localhost:9091/metrics`.
 
-```bash
-pip install -r requirements-dev.txt
-pytest
-```
-
-На GitHub при пуше/PR в `main` или `master` запускается [CI](.github/workflows/ci.yml): pytest на Python 3.9 и 3.11 и сборка Docker-образа.
-
-### Docker (приложение + PostgreSQL)
-
-В контейнере по умолчанию используется **PostgreSQL**: та же таблица `seen_items` и UPSERT, что и в SQLite — удобно для продакшена и нескольких реплик. **Redis** для этой задачи тоже возможен (ключ → хэш), но как «основная БД» состояния уведомлений чаще выбирают реляционный движок с явной схемой и бэкапами тома.
-
-```bash
-cp .env.example .env
-# заполните TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, RSS_FEED_URL
-docker compose up --build
-```
-
-`docker-compose.yml` задаёт `DATABASE_URL=postgresql://rss:rss@postgres:5432/rss` и ждёт готовности Postgres по `healthcheck`. Данные БД лежат в volume `pgdata`. Сервис **app** публикует **`METRICS_PORT=9091`** — эндпоинт **`http://<хост>:9091/metrics`** в формате Prometheus.
+Остановка: `Ctrl+C` или в другом терминале `docker compose down`. Чтобы удалить и том с БД: `docker compose down -v`.
 
 ### Prometheus и Grafana
 
-**Prometheus** опрашивает цели по HTTP (pull) и хранит временные ряды. **Grafana** подключается к Prometheus как к datasource и строит дашборды — это стандартная связка для метрик приложений.
+**Prometheus** забирает метрики по HTTP (pull), **Grafana** подключается к Prometheus и строит графики. Счётчики и гистограмма описаны в `app/metrics.py`.
 
-В репозитории уже есть счётчики и гистограмма в `app/metrics.py` (например `rss_poll_runs_total`, `rss_poll_duration_seconds`, `rss_telegram_sent_total`). Чтобы поднять стек мониторинга вместе с приложением:
+Поднять вместе с приложением **Prometheus** и **Grafana**:
 
 ```bash
 docker compose --profile monitoring up --build
 ```
 
-- **Prometheus**: [http://localhost:9090](http://localhost:9090) — вкладка Graph, запросы вроде `rate(rss_poll_runs_total[5m])`.
-- **Grafana**: [http://localhost:3000](http://localhost:3000) (логин/пароль по умолчанию `admin` / `admin` — смените в проде). Источник **Prometheus** подхватывается из `deploy/grafana/provisioning/`.
-
-Локально без Docker: задайте **`METRICS_PORT=9091`** в `.env` и откройте `http://127.0.0.1:9091/metrics`; Prometheus можно запустить отдельно и указать target на ваш хост.
+- **Prometheus**: [http://localhost:9090](http://localhost:9090) (Graph, PromQL).
+- **Grafana**: [http://localhost:3000](http://localhost:3000), логин / пароль по умолчанию **`admin`** / **`admin`** (в проде смените). Datasource Prometheus подхватывается из `deploy/grafana/provisioning/`.
 
 #### Скриншоты Grafana
 
-![Grafana: обзор метрик](static/gafana.jpg)
+**Первый скрин:** запрос `rate(rss_items_parsed_total[5m]) * 60` — примерная скорость разбора элементов RSS в минуту.
 
-![Grafana: RSS items per minute](static/grafana-rss-per-minutte.jpg)
+![Grafana: rate(rss_items_parsed_total[5m]) * 60](static/gafana.jpg)
+
+**Второй скрин:** запрос `histogram_quantile(0.9, rate(rss_poll_duration_seconds_bucket[5m]))` — оценка 90-го перцентиля длительности цикла опроса (сек).
+
+![Grafana: histogram_quantile по rss_poll_duration_seconds](static/grafana-rss-per-minutte.jpg)
+
+### Тесты (локально)
+
+```bash
+python -m venv .venv
+source .venv/Scripts/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt -r requirements-dev.txt
+pytest
+```
+
+На GitHub при пуше/PR в `main` или `master` запускается [CI](.github/workflows/ci.yml): pytest (Python 3.9 и 3.11) и сборка Docker-образа.
 
 Переменные окружения (см. `.env.example`):
 
 | Переменная | Назначение |
 |------------|------------|
 | `TELEGRAM_BOT_TOKEN` или `API_KEY` | Токен бота от @BotFather |
-| `TELEGRAM_CHAT_ID` | Куда слать (user / группа / канал). Без него сообщения не уходят и посты **не** помечаются в БД (чтобы не потерять уведомления) |
+| `TELEGRAM_CHAT_ID` | Куда слать . Без него сообщения не уходят и посты **не** помечаются в БД (чтобы не потерять уведомления) |
 | `RSS_FEED_URL` | URL RSS или Atom |
 | `DATABASE_URL` | Если задан — **PostgreSQL** (`psycopg`). В Docker Compose задаётся автоматически |
 | `DATABASE_PATH` | Путь к файлу SQLite, если `DATABASE_URL` пуст (локальная разработка без Postgres) |
@@ -70,31 +70,7 @@ docker compose --profile monitoring up --build
 
 Текстом: **планировщик** по таймеру вызывает **оркестратор** (цикл в `main`). Оркестратор просит **RSSParser** скачать и разобрать ленту в список `Post`. **Storage** отфильтровывает уже виденные записи (по данным в **БД**). **Notifier** отправляет сообщения в Telegram Bot API. После успешной отправки **Storage** фиксирует факт обработки, чтобы при следующем запуске или рестарте дубликаты не ушли повторно.
 
-```mermaid
-flowchart LR
-  subgraph process["Процесс приложения"]
-    SCH[Scheduler]
-    ORCH[Оркестратор / main]
-    PARSER[RSSParser]
-    ST[Storage]
-    BOT[Notifier]
-  end
-  RSS[(RSS/Atom URL)]
-  DB[(PostgreSQL / SQLite)]
-  TG[Telegram Bot API]
-
-  SCH -->|interval| ORCH
-  ORCH --> PARSER
-  PARSER --> RSS
-  RSS --> PARSER
-  PARSER -->|list Post| ORCH
-  ORCH --> ST
-  ST --> DB
-  DB --> ST
-  ORCH --> BOT
-  BOT --> TG
-  ORCH -->|mark_seen| ST
-```
+![Схема взаимодействия компонентов](static/usecase-diagramm.jpg)
 
 ## 2. Модели данных
 
@@ -130,6 +106,3 @@ app/
 
 Парсер RSS, хранилище и отправка в Telegram реализованы; конфигурация — через переменные окружения и Docker Compose.
 
-## Безопасность
-
-Не коммитьте `.env` с реальным токеном. Токен бота = секрет; при утечке перевыпустите его в @BotFather.
